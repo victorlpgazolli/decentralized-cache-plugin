@@ -16,5 +16,6 @@ target
 
 *.log
 .kotlin
+local-*
 
 minio

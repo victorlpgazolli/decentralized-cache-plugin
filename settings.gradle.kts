@@ -2,10 +2,6 @@ plugins {
     id "com.atkinsondev.object-store-cache" version "2.1.0"
 }
 
-boolean isCI = Boolean.valueOf(System.getenv("GITHUB_ACTIONS"))
-String cacheAccessKey = System.getenv("CACHE_ACCESS_KEY") ?: properties['cache_access_key']
-String cacheSecretKey = System.getenv("CACHE_SECRET_KEY") ?: properties['cache_secret_key']
-
 buildCache {
     local {
         enabled = !isCI

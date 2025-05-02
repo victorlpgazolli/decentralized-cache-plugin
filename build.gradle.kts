@@ -37,11 +37,19 @@ gradlePlugin {
             description = "Use an S3-compatible object store as the backend for a Gradle remote build cache"
             tags.addAll(['build-cache'])
         }
+        decentralizedCachePlugin {
+            id = 'dev.victorlpgazolli.decentralized-cache'
+            implementationClass = 'dev.victorlpgazolli.DecentralizedCachePlugin'
+            displayName = 'Decentralized cache plugin'
+            description = "Use IPFS as the backend for a Gradle remote build cache"
+            tags.addAll(['build-cache'])
+        }
     }
 }
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://jitpack.io") }
 }
 
 group = "com.atkinsondev.gradle"
@@ -55,6 +63,7 @@ dependencies {
     testImplementation('org.spockframework:spock-junit4:2.3-groovy-3.0')
     testImplementation "org.apache.commons:commons-lang3:3.17.0"
     testImplementation 'io.minio:minio:8.5.17'
+    implementation 'com.github.ligi:ipfs-api-kotlin:0.15'
     testImplementation gradleTestKit()
 }
 

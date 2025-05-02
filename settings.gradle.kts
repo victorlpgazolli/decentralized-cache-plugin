@@ -1,18 +1,30 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        google()
+    }
+}
+rootProject.name = "decentralized-cache-plugin"
+
 plugins {
-    id "com.atkinsondev.object-store-cache" version "2.1.0"
+    id("dev.victorlpgazolli.decentralized-cache-plugin") version "1.0.0"
 }
 
 buildCache {
-    local {
-        enabled = !isCI
-    }
-    remote(com.atkinsondev.cache.ObjectStoreBuildCache) {
-        endpoint = 'sfo2.digitaloceanspaces.com'
-        accessKey = cacheAccessKey
-        secretKey = cacheSecretKey
-        bucket = 'cacheplugin'
-        autoCreateBucket = true
-        expirationInDays = 10
-        push = isCI
+    local { isEnabled = false }
+
+    remote<dev.victorlpgazolli.DecentralizedConfiguration> {
+        isEnabled = true
+        isPush    = true
     }
 }

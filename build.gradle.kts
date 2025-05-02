@@ -1,119 +1,74 @@
+plugins {
+    `java-gradle-plugin`
+    `maven-publish`
+    alias(libs.plugins.kotlinJvm)
+    alias(libs.plugins.pluginPublish)
+    alias(libs.plugins.mavenPublish)
+
+}
+val projectGroupId = "dev.victorlpgazolli.decentralized-cache-plugin"
+val projectArtifactId = "decentralized-cache-plugin"
+val versionNumber = "1.0.0"
+
 buildscript {
     repositories {
-        maven { url "https://plugins.gradle.org/m2/" }
+        mavenLocal()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+        gradlePluginPortal()
     }
+
 }
 
-plugins {
-    id 'java-gradle-plugin'
-    id 'maven-publish'
-    id "com.gradle.plugin-publish" version "1.3.0"
-    id 'groovy'
-    id "dev.projektor.publish" version "9.0.0"
-    id "org.jlleitschuh.gradle.ktlint" version "12.1.2"
-    id "com.atkinsondev.opentelemetry-build" version "3.1.1"
-    id "org.jetbrains.kotlin.jvm" version "2.0.21" // https://docs.gradle.org/current/userguide/compatibility.html#kotlin
-}
-
-sourceCompatibility = 17
-
-compileKotlin {
-    kotlinOptions.jvmTarget = "17"
-}
-
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "17"
-}
 
 gradlePlugin {
-    website = 'https://github.com/craigatk/object-store-cache-plugin'
-    vcsUrl = 'https://github.com/craigatk/object-store-cache-plugin'
     plugins {
-        objectStoreCachePlugin {
-            id = 'com.atkinsondev.object-store-cache'
-            implementationClass = 'com.atkinsondev.cache.ObjectStoreCachePlugin'
-            displayName = 'Object store cache plugin'
-            description = "Use an S3-compatible object store as the backend for a Gradle remote build cache"
-            tags.addAll(['build-cache'])
-        }
-        decentralizedCachePlugin {
-            id = 'dev.victorlpgazolli.decentralized-cache'
-            implementationClass = 'dev.victorlpgazolli.DecentralizedCachePlugin'
-            displayName = 'Decentralized cache plugin'
-            description = "Use IPFS as the backend for a Gradle remote build cache"
-            tags.addAll(['build-cache'])
+        create("decentralizedCachePlugin") {
+            id = projectGroupId
+            group = projectGroupId
+            implementationClass = "dev.victorlpgazolli.DecentralizedCachePlugin"
+            version = versionNumber
         }
     }
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven { url = uri("https://jitpack.io") }
+
 }
 
-group = "com.atkinsondev.gradle"
-version = "2.1.0"
 
 dependencies {
-    implementation 'io.minio:minio:8.5.17'
-    implementation 'io.github.microutils:kotlin-logging:3.0.5'
-
-    testImplementation('org.spockframework:spock-core:2.3-groovy-3.0')
-    testImplementation('org.spockframework:spock-junit4:2.3-groovy-3.0')
-    testImplementation "org.apache.commons:commons-lang3:3.17.0"
-    testImplementation 'io.minio:minio:8.5.17'
-    implementation 'com.github.ligi:ipfs-api-kotlin:0.15'
-    testImplementation gradleTestKit()
+    implementation(libs.ipfs)
+    implementation("io.github.novacrypto:Base58:2022.01.17")
 }
-
-test {
-    useJUnitPlatform()
-
-    maxParallelForks = Math.floorDiv(Runtime.runtime.availableProcessors(), 2) + 1
-
-    testLogging {
-        exceptionFormat = 'full'
+publishing {
+    repositories {
+        mavenLocal()
     }
-}
+    publications {
+//        named<MavenPublication>("pluginMaven") {
+//            groupId    = projectGroupId
+//            artifactId = projectArtifactId
+//            version    = versionNumber
+//        }
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            groupId = projectGroupId
+            artifactId = projectArtifactId
+            version = versionNumber
 
-projektor {
-    serverUrl = "https://projektorlive.herokuapp.com"
-    publishToken = System.getenv("PROJEKTOR_TOKEN") ?: project.findProperty('projektor_publish_token') ?: null
-}
-
-ktlint {
-    disabledRules = ["no-wildcard-imports"]
-}
-
-task format(dependsOn: ktlintFormat)
-
-// Getting the plugin files onto the classpath for a Settings plugin requires some trickery,
-// big thanks to GitHub user boazj, who figured out a way - https://github.com/boazj/gradle-testkit-project-dir-issue
-task createClasspathManifest {
-    def outputDir = file("${buildDir}/${name}")
-
-    inputs.files sourceSets.main.runtimeClasspath
-    outputs.dir outputDir
-
-    doLast {
-        outputDir.mkdirs()
-        file("${outputDir}/plugin-classpath.txt").text = sourceSets.main.runtimeClasspath.join("\n")
+            pom {
+                name = "Decentralized cache plugin"
+                description = "Use IPFS as the backend for a Gradle remote build cache"
+                inceptionYear = "2025"
+                url = "https://github.com/victorlpgazolli/decentralized-cache-plugin"
+                version = versionNumber
+                groupId = projectGroupId
+                artifactId = projectArtifactId
+            }
+        }
     }
-}
-test.dependsOn(createClasspathManifest)
-
-// Re-run the tests if one of the Docker config files changes
-test.inputs.file("docker-compose.yml")
-test.inputs.dir(".github/workflows")
-
-tasks.withType(Groovydoc).all { enabled = false }
-
-openTelemetryBuild {
-    endpoint = System.getenv("OTEL_BUILD_ENDPOINT") ?: project.findProperty('otel_build_endpoint') ?: "https://api.honeycomb.io"
-    headers = [
-            "x-honeycomb-team": System.getenv("HONEYCOMB_API_KEY") ?: project.findProperty('honeycomb_api_key') ?: "",
-            "x-honeycomb-dataset": "otel-gradle"
-    ]
-    traceViewUrl = "https://ui.honeycomb.io/otel-gradle/environments/dev/datasets/gradle-builds/trace?trace_id={traceId}"
 }

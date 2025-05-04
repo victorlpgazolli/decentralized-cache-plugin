@@ -18,6 +18,7 @@ I think a cloud storage solution is enough, it will probably be cheaper and easi
 
 This project tries to approach the problem from a different angle, instead of relying on a centralized server or cloud storage,
 the main goal here is to share cache between developers in a decentralized way, using a established peer-to-peer network.
+I couldn't find any other plugin that does this, so i decided to create one.
 
 ## How it works:
 

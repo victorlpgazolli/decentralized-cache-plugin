@@ -1,6 +1,8 @@
 package dev.victorlpgazolli.client
 
 import com.squareup.moshi.JsonAdapter
+import dev.victorlpgazolli.DecentralizedConfiguration
+import dev.victorlpgazolli.utils.Logger
 import io.github.novacrypto.base58.Base58
 import io.ipfs.kotlin.IPFS
 import io.ipfs.kotlin.IPFSConfiguration
@@ -9,111 +11,172 @@ import okhttp3.ResponseBody
 import java.io.File
 import java.io.InputStream
 
-
 val LOG_TAG = "[decentralized-cache]"
+
 internal class IpfsClient (
-//    configuration: IPFSConfig
+    val configuration: DecentralizedConfiguration,
+    val cacheManifest: CacheManifest,
+    val logger: Logger
 ) {
 
-//    val hostBaseUrl = configuration.hostBaseUrl
-//    val publishKeyName = configuration.publishKeyName
-//    val baseIpns = configuration.baseIpns
+    val hostBaseUrl: String? = configuration.hostBaseUrl
+    val baseIpns = configuration.baseIpns
+    val client: IPFS by lazy {
+        hostBaseUrl
+            ?.let { IPFS(IPFSConfiguration(it)) }
+            ?: IPFS(IPFSConfiguration())
+    }
+    val mfs: Mfs by lazy {
+        Mfs(
+            ipfs = client.info.ipfs,
+            logger = logger
+        )
+    }
+    init {
+        cacheManifest.setup(this)
+    }
 
-    private val client = IPFS(
-        IPFSConfiguration()
-    )
 
     val version: String?
         get() = client.info.version()?.Version
 
     fun putObject(
-        directoryPath: String,
+        filePath: String,
         objectName: String,
     ) {
+        mfs.stat(filePath).let {
+            it?.Hash?.let {
+                logger.log(LOG_TAG, objectName, "object already exists in local cache: $it")
+                return
+            }
+        }
 
-        val base58Hash = Base58.base58Encode(objectName.toByteArray())
+        logger.log(LOG_TAG, objectName, "adding from $filePath")
 
-        println("$LOG_TAG adding $objectName ($base58Hash) from $directoryPath")
+        val result = client.add.file(File(filePath))
 
-        val result = client.add.directory(File(directoryPath), objectName)
+        logger.log(LOG_TAG, objectName, "client.add.file - size: ${result.Hash}")
 
-        println("$LOG_TAG client.add.directory - size: ${result.size} ${result}")
-        val directory = result.last()
+        logger.log(LOG_TAG, objectName, "client.pins.add ${result.Hash}")
 
-        println("$LOG_TAG client.pins.add ${directory.Hash}")
+        client.pins.add(result.Hash)
 
-        client.pins.add(directory.Hash)
+        logger.log(LOG_TAG, objectName, "done pinning")
+        logger.log(LOG_TAG, objectName, "writing hash to MFS")
+        val from = "/ipfs/${result.Hash}"
+        val to = "/local-ipfs-gradle-cache/$objectName"
+        val mfsResult: Boolean = mfs.copy(from, to).let {
+            mfs.stat(to)?.Hash.isNullOrEmpty().not()
+        }
 
+        logger.log(LOG_TAG, objectName, "coping file from $from to $to = $mfsResult")
+        logger.log(LOG_TAG, objectName, "announcing hash to network using routing provider")
 
-        println("$LOG_TAG done pinning")
-        println("$LOG_TAG writing hash to MFS")
-        val mfsResult = Mfs(client.info.ipfs)
-            .copy(
-                "/ipfs/${directory.Hash}",
-                "/local-ipfs-gradle-cache/$objectName",
-            )
+        val announcement = Routing(client.info.ipfs).provide(result.Hash)
+        logger.log(LOG_TAG, objectName, "routing.provide $announcement")
+    }
 
-        println("$LOG_TAG mfsResult: $mfsResult")
-        println("$LOG_TAG announcing hash to network using routing provider")
+    private fun getIpfsHashFromObjectHash(objectHash: String): String? {
 
-        val announcement = Routing(client.info.ipfs).provide(directory.Hash)
-        println("$LOG_TAG routing.provide ${announcement}")
+        val localPath = "/local-ipfs-gradle-cache/$objectHash"
+        val localObjectHash: String? = mfs
+            .stat(localPath)
+            ?.Hash
+        logger.log(LOG_TAG, objectHash, "searching MFS")
+        localObjectHash?.let {
+            logger.log(LOG_TAG, objectHash, "found at MFS: $it")
+            return it
+        } ?: logger.log(LOG_TAG, objectHash, "not found at MFS")
+
+        logger.log(LOG_TAG, objectHash, "searching peers")
+        val peerObjectHash: String? = Base58
+            .base58Encode(objectHash.toByteArray())
+            .let { cacheManifest.translateToIpfsHash(it) }
+
+        logger.log(LOG_TAG, objectHash, "peerObjectHash: $peerObjectHash")
+        peerObjectHash?.let {
+            logger.log(LOG_TAG, objectHash, "found at peer: $it")
+            return it
+        } ?: logger.log(LOG_TAG, objectHash, "not found at peer")
+
+        return null
     }
 
     fun getObject(
         objectName: String,
-    ): InputStream {
+    ): InputStream? {
+        logger.log(LOG_TAG, objectName, "searching for $objectName ipfs hash")
 
+        val ipfsHash: String? = getIpfsHashFromObjectHash(objectName)
 
-        println("$LOG_TAG fetching $objectName hash from MFS")
-
-        val localObjectHash: String? = Mfs(client.info.ipfs)
-            .stat("/local-ipfs-gradle-cache/$objectName")
-            ?.Hash
-
-        if(localObjectHash == null) {
-            println("$LOG_TAG localObjectHash is null")
-            return InputStream.nullInputStream()
+        if(ipfsHash == null) {
+            logger.log(LOG_TAG, objectName, "ipfsHash is null")
+            return null
         }
+        logger.log(LOG_TAG, objectName, "$objectName translate to $ipfsHash")
 
-        println("$LOG_TAG localObjectHash: $localObjectHash")
+        val hashPath = "/ipfs/$ipfsHash"
 
-        val result = client.get.cat("/ipfs/$localObjectHash")
-
-        println("$LOG_TAG client.get.cat /ipfs/$localObjectHash ${result.length} $result")
-
-        val hasStrangeLength = result.length < 50
-        val hasInvalidResult = result.toString().contains("405 - Method Not Allowed")
-        if(hasStrangeLength && hasInvalidResult) {
-            return InputStream.nullInputStream()
-        }
-
-        return result
-            .byteInputStream()
+        return mfs.read(objectName)
+            ?: client.get.catBytes(hashPath).let {
+                mfs.copy(from = hashPath,to = "/local-ipfs-gradle-cache/$objectName")
+                it.inputStream()
+            }
     }
 }
 
 data class Hash(val Hash: String)
-class Mfs(val ipfs: IPFSConnection) {
+class Mfs(val ipfs: IPFSConnection, val logger: Logger) {
 
+    init {
+        createCacheIfNotExists()
+    }
+
+    private fun createCacheIfNotExists() {
+        val localIpfsCache = "/local-ipfs-gradle-cache"
+        logger.log(LOG_TAG, "mfs", "creating $localIpfsCache")
+        ipfs.callCmd("files/mkdir?arg=$localIpfsCache").let { _ ->
+            logger.log(LOG_TAG, "mfs", "$localIpfsCache created")
+        }
+    }
     private val adapter: JsonAdapter<Hash> by lazy {
         ipfs.config.moshi.adapter(Hash::class.java)
     }
 
-    fun stat(path: String): Hash = ipfs.callCmd("files/stat?arg=$path&hash=true").use { responseBody ->
+    fun stat(path: String): Hash? = ipfs.callCmd("files/stat?arg=$path&hash=true").let { responseBody ->
         return adapter.fromJson(responseBody.charStream().readText())
     }
 
-    fun copy(from: String, to: String): String {
-        ipfs.callCmd("files/rm?arg=$from&recursive=true&force=true")
-        return ipfs.callCmd("files/cp?arg=$from&arg=$to&parents=true").use(ResponseBody::string)
+    fun copy(from: String, to: String): String? {
+        runCatching {
+            ipfs.callCmd("files/cp?arg=$from&arg=$to").let(ResponseBody::string)?.let {
+                return it
+            }
+        }.onFailure {
+            logger.log(LOG_TAG, "copy", " failed to copy $from to $to")
+            println(it.message)
+        }.onSuccess {
+            logger.log(LOG_TAG, "copy", " copied $from to $to")
+        }
+        return null
     }
+
+    fun read(objectHash: String): InputStream? {
+        val path = "/local-ipfs-gradle-cache/$objectHash"
+
+        stat(path) ?: return null
+
+        return ipfs
+            .callCmd("files/read?arg=$path")
+            .let { it.byteStream() }
+            ?: null
+    }
+
 
 }
 
-
 class Routing(val ipfs: IPFSConnection) {
 
-    fun provide(hash: String): String = ipfs.callCmd("routing/provide?arg=$hash").use(ResponseBody::string)
+    fun provide(hash: String): String = ipfs.callCmd("routing/provide?arg=$hash").let(ResponseBody::string)
 
 }

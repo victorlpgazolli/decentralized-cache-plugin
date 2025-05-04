@@ -1,7 +1,9 @@
 package dev.victorlpgazolli.service
 
 import dev.victorlpgazolli.DecentralizedConfiguration
+import dev.victorlpgazolli.client.CacheManifest
 import dev.victorlpgazolli.client.IpfsClient
+import dev.victorlpgazolli.utils.SimpleLogger
 import org.gradle.caching.BuildCacheService
 import org.gradle.caching.BuildCacheServiceFactory
 
@@ -13,14 +15,18 @@ internal class IpfsBuildCacheServiceFactory : BuildCacheServiceFactory<Decentral
     ): BuildCacheService {
         println("$LOG_TAG creating build cache service")
 
+        val logger = SimpleLogger()
         val ipfsClient = IpfsClient(
-//            decentralizedConfiguration.provider
+            configuration = decentralizedConfiguration,
+            cacheManifest = CacheManifest(logger),
+            logger = logger
         )
 
        println("$LOG_TAG Using ipfs client with version ${ipfsClient.version}")
 
         return IpfsBuildCacheService(
-            ipfsClient
+            ipfsClient = ipfsClient,
+            logger = logger
         )
     }
 }

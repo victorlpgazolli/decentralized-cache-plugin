@@ -14,7 +14,7 @@ There are plugins that you could use to store your build cache in a cloud storag
 - ... probably many more ...
 
 The way i see it, running your own build cache server is not ideal, you would need to setup the server, configure and maintain it.
-I thing a cloud storage solution sis enough, it will probably be cheaper and easier to maintain, there are a few things you would need to configure it, and worry about data transfer, but overall it sounds good.
+I think a cloud storage solution is enough, it will probably be cheaper and easier to maintain, but you would still need to configure it, and worry about data transfer, but overall it sounds good.
 
 This project tries to approach the problem from a different angle, instead of relying on a centralized server or cloud storage,
 the main goal here is to share cache between developers in a decentralized way, using a established peer-to-peer network.
@@ -22,11 +22,11 @@ the main goal here is to share cache between developers in a decentralized way, 
 ## How it works:
 
 Every time a developer compile the project, the plugin checks if someone on the network already has this build cache, if so, it downloads it and uses it.
-When you download the build cache, you also become a seed for the build cache, so you can share it with other developers.
+When you download the build cache, you also become a seed for it, so you can share with other developers.
 
-If no one has this build cache, the project compiles as it normally would, and after that the plugin announces that you have this build cache available in case someone else needs it.
+If no one can provide the cache you need, your project compiles as it normally would, and after that the plugin announces to the network that you have this specific build cache available in case someone else needs it.
 
-For the network i chose [IPFS](https://ipfs.io/) since it is a well known, and it has a lot of support from the community. So to use this plugin, you would need to install `ipfs` and run it in the background.
+The decentralized network i chose is called [IPFS](https://ipfs.io/), i highly recommend reading the documentation to understand how it works. For this project specifically, it satisfies the requirements and it seems to have support from the community, which is enough for me.
 
 ## Usage
 

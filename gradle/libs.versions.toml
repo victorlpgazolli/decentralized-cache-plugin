@@ -6,11 +6,11 @@ decentralizedCachePlugin = "1.0.0"
 
 [libraries]
 ipfs = { group = "com.github.ligi", name = "ipfs-api-kotlin", version = "0.15" }
-
+kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.8.1" }
 
 [plugins]
 pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "pluginPublish" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinJvm" }
 decentralizedCachePlugin = { id = "dev.victorlpgazolli.decentralized-cache-plugin", version.ref = "decentralizedCachePlugin" }
-
+serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlinJvm" }

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.pluginPublish)
     alias(libs.plugins.mavenPublish)
+    alias(libs.plugins.serialization)
 
 }
 val projectGroupId = "dev.victorlpgazolli.decentralized-cache-plugin"
@@ -43,6 +44,7 @@ repositories {
 dependencies {
     implementation(libs.ipfs)
     implementation("io.github.novacrypto:Base58:2022.01.17")
+    implementation(libs.kotlinx.serialization)
 }
 publishing {
     repositories {

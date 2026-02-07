@@ -1,16 +1,16 @@
 [versions]
+kotlin = "2.2.20"
+novaCrypto = "2022.01.17"
 pluginPublish = "2.0.0"
 mavenPublish = "0.30.0"
-kotlinJvm = "2.2.20"
-decentralizedCachePlugin = "1.0.0"
 
 [libraries]
 ipfs = { group = "com.github.ligi", name = "ipfs-api-kotlin", version = "0.15" }
+novaCrypto = { group = "io.github.novacrypto", name = "Base58", version.ref = "novaCrypto" }
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.8.1" }
 
 [plugins]
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "pluginPublish" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
-kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinJvm" }
-decentralizedCachePlugin = { id = "dev.victorlpgazolli.decentralized-cache-plugin", version.ref = "decentralizedCachePlugin" }
-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlinJvm" }

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     services:
       objectstorage:
-        image: bitnami/minio:2024.12.18-debian-12-r1
+        image: minio/minio:edge-cicd
         ports:
           - "9000:9000"
         volumes:
@@ -22,12 +22,12 @@ jobs:
           MINIO_ROOT_PASSWORD: minio_secret_key
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
         with:
-          java-version: 17
+          java-version: 21
           distribution: 'temurin'
           cache: 'gradle'
 

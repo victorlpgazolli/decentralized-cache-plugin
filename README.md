@@ -43,5 +43,5 @@ The decentralized network i chose is called [IPFS](https://ipfs.io/), i highly r
 
 ## Compatibility
 
-The plugin is compatible with Gradle `8.4` and higher and Java `17` and higher.
+The plugin is compatible with Gradle `8.4` and higher and Java `21` and higher.
 

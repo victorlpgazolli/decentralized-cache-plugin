@@ -20,7 +20,7 @@ internal class IpfsBuildCacheService(
         cacheKey: BuildCacheKey,
         cacheEntryWriter: BuildCacheEntryWriter,
     ) {
-        val key = cacheKey.toString()
+        val key = cacheKey.hashCode
         val path = "/tmp/ipfs-cache-$key.gz"
         logger.log(LOG_TAG, key, "Storing cache entry at $path")
 
@@ -60,7 +60,7 @@ internal class IpfsBuildCacheService(
         cacheKey: BuildCacheKey,
         cacheEntryReader: BuildCacheEntryReader,
     ): Boolean {
-        val key = cacheKey.toString()
+        val key = cacheKey.hashCode
         logger.log(LOG_TAG, key, "Loading cache entry")
         val inputStream = ipfsClient.getObject(key)
 

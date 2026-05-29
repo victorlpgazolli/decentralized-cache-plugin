@@ -52,6 +52,7 @@ internal class CacheManifest(
     private lateinit var client: IpfsClient
     private lateinit var manifest: Manifest
     private val manifestLock = Any()
+    private var hasPendingChanges = false
 
     private val manifestFileName = "manifest.json"
     private val emptyManifest = Manifest(
@@ -125,30 +126,43 @@ internal class CacheManifest(
     public fun addCacheEntry(objectName: String, ipfsHash: String) {
         synchronized(manifestLock) {
             if (this::manifest.isInitialized) {
-                logger.log(LOG_TAG, "addCacheEntry", "Adding $objectName -> $ipfsHash to manifest")
+                logger.log(LOG_TAG, "addCacheEntry", "Queueing $objectName -> $ipfsHash in memory")
 
                 val updatedHashs = manifest.hashs.toMutableMap()
                 updatedHashs[objectName] = ipfsHash
 
-                this.manifest = Manifest(
-                    publishKeyName = manifest.publishKeyName,
+                this.manifest = manifest.copy(
                     hashs = updatedHashs
                 )
 
-                val tmpManifestPath = "/tmp/local-ipfs-gradle-cache"
-                File(tmpManifestPath).mkdirs()
-
-                val newManifestFile = File("$tmpManifestPath/$manifestFileName")
-                newManifestFile.writeText(manifest.encodeManifest())
-
-                client.mfs.delete("/local-ipfs-gradle-cache/$manifestFileName")
-                val hash = client.putObject(
-                    filePath = newManifestFile.absolutePath,
-                    objectName = manifestFileName
-                )
-
-                publishManifestToNetwork(hash)
+                hasPendingChanges = true
             }
+        }
+    }
+    public fun flush() {
+        synchronized(manifestLock) {
+            if (!hasPendingChanges || !this::manifest.isInitialized) {
+                logger.log(LOG_TAG, "flush", "No pending manifest changes to publish.")
+                return
+            }
+
+            logger.log(LOG_TAG, "flush", "Flushing batched manifest changes to IPFS/IPNS...")
+
+            val tmpManifestPath = "/tmp/local-ipfs-gradle-cache"
+            File(tmpManifestPath).mkdirs()
+
+            val newManifestFile = File("$tmpManifestPath/$manifestFileName")
+            newManifestFile.writeText(manifest.encodeManifest())
+
+            client.mfs.delete("/local-ipfs-gradle-cache/$manifestFileName")
+            val hash = client.putObject(
+                filePath = newManifestFile.absolutePath,
+                objectName = manifestFileName
+            )
+
+            publishManifestToNetwork(hash)
+
+            hasPendingChanges = false
         }
     }
     private fun publishManifestToNetwork(manifestIpfsHash: String) {

@@ -75,5 +75,9 @@ internal class IpfsBuildCacheService(
     }
 
 
-    override fun close() {}
+    override fun close() {
+        logger.log(LOG_TAG, "close", "Gradle build finished. Closing cache service...")
+
+        ipfsClient.cacheManifest.flush()
+    }
 }

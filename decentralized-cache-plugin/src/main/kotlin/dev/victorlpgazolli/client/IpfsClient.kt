@@ -10,6 +10,7 @@ import io.ipfs.kotlin.IPFSConnection
 import okhttp3.ResponseBody
 import java.io.File
 import java.io.InputStream
+import java.util.concurrent.CompletableFuture
 
 private const val LOG_TAG = "[decentralized-cache]"
 
@@ -44,24 +45,12 @@ internal class IpfsClient (
         filePath: String,
         objectName: String,
     ): String{
-        mfs.stat(filePath).let {
-            it?.Hash?.let { hash ->
-                logger.log(LOG_TAG, objectName, "object already exists in local cache: $hash")
-                return hash
-            }
-        }
-
         logger.log(LOG_TAG, objectName, "adding from $filePath")
 
         val result = client.add.file(File(filePath))
 
         logger.log(LOG_TAG, objectName, "client.add.file - size: ${result.Hash}")
 
-        logger.log(LOG_TAG, objectName, "client.pins.add ${result.Hash}")
-
-        client.pins.add(result.Hash)
-
-        logger.log(LOG_TAG, objectName, "done pinning")
         logger.log(LOG_TAG, objectName, "writing hash to MFS")
         val from = "/ipfs/${result.Hash}"
         val to = "/local-ipfs-gradle-cache/$objectName"
@@ -72,8 +61,14 @@ internal class IpfsClient (
         logger.log(LOG_TAG, objectName, "coping file from $from to $to = $mfsResult")
         logger.log(LOG_TAG, objectName, "announcing hash to network using routing provider")
 
-        Routing(client.info.ipfs).provide(result.Hash)
-        logger.log(LOG_TAG, objectName, "routing.provide completed")
+        logger.log(LOG_TAG, objectName, "announcing hash to network in background...")
+
+        CompletableFuture.runAsync {
+            runCatching {
+                Routing(client.info.ipfs).provide(result.Hash)
+                logger.log(LOG_TAG, objectName, "routing.provide completed")
+            }
+        }
         return result.Hash
     }
 

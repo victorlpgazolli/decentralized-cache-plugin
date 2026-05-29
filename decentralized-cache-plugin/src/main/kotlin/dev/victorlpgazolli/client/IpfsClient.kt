@@ -20,7 +20,7 @@ internal class IpfsClient (
 ) {
 
     val hostBaseUrl: String? = configuration.hostBaseUrl
-    val baseIpns = configuration.baseIpns
+
     val client: IPFS by lazy {
         hostBaseUrl
             ?.let { IPFS(IPFSConfiguration(it)) }
@@ -43,11 +43,11 @@ internal class IpfsClient (
     fun putObject(
         filePath: String,
         objectName: String,
-    ) {
+    ): String{
         mfs.stat(filePath).let {
-            it?.Hash?.let {
-                logger.log(LOG_TAG, objectName, "object already exists in local cache: $it")
-                return
+            it?.Hash?.let { hash ->
+                logger.log(LOG_TAG, objectName, "object already exists in local cache: $hash")
+                return hash
             }
         }
 
@@ -72,8 +72,9 @@ internal class IpfsClient (
         logger.log(LOG_TAG, objectName, "coping file from $from to $to = $mfsResult")
         logger.log(LOG_TAG, objectName, "announcing hash to network using routing provider")
 
-        val announcement = Routing(client.info.ipfs).provide(result.Hash)
-        logger.log(LOG_TAG, objectName, "routing.provide $announcement")
+        Routing(client.info.ipfs).provide(result.Hash)
+        logger.log(LOG_TAG, objectName, "routing.provide completed")
+        return result.Hash
     }
 
     private fun getIpfsHashFromObjectHash(objectHash: String): String? {
@@ -135,7 +136,7 @@ class Mfs(val ipfs: IPFSConnection, val logger: Logger) {
     private fun createCacheIfNotExists() {
         val localIpfsCache = "/local-ipfs-gradle-cache"
         logger.log(LOG_TAG, "mfs", "creating $localIpfsCache")
-        ipfs.callCmd("files/mkdir?arg=$localIpfsCache").let { _ ->
+        ipfs.callCmd("files/mkdir?arg=$localIpfsCache").use {
             logger.log(LOG_TAG, "mfs", "$localIpfsCache created")
         }
     }
@@ -143,15 +144,16 @@ class Mfs(val ipfs: IPFSConnection, val logger: Logger) {
         ipfs.config.moshi.adapter(Hash::class.java)
     }
 
-    fun stat(path: String): Hash? = ipfs.callCmd("files/stat?arg=$path&hash=true").let { responseBody ->
-        return adapter.fromJson(responseBody.charStream().readText())
-    }
+    fun stat(path: String): Hash? = runCatching {
+        ipfs.callCmd("files/stat?arg=$path&hash=true").use { responseBody ->
+            adapter.fromJson(responseBody.charStream().readText())
+        }
+    }.getOrNull()
 
     fun copy(from: String, to: String): String? {
         runCatching {
-            ipfs.callCmd("files/cp?arg=$from&arg=$to").let(ResponseBody::string)?.let {
-                return it
-            }
+            ipfs.callCmd("files/cp?arg=$from&arg=$to")
+                .use(ResponseBody::string)?.let { return it }
         }.onFailure {
             logger.log(LOG_TAG, "copy", " failed to copy $from to $to")
         }.onSuccess {
@@ -167,15 +169,24 @@ class Mfs(val ipfs: IPFSConnection, val logger: Logger) {
 
         return ipfs
             .callCmd("files/read?arg=$path")
-            .let { it.byteStream() }
-            ?: null
+            .byteStream()
     }
 
+    fun delete(path: String) {
+        runCatching {
+            ipfs.callCmd("files/rm?arg=$path").use {
+                logger.log(LOG_TAG, "delete", " deleted $path")
+            }
+        }.onFailure {
+            logger.log(LOG_TAG, "delete", " failed to delete $path")
+        }
+    }
 
 }
 
 class Routing(val ipfs: IPFSConnection) {
 
-    fun provide(hash: String): String = ipfs.callCmd("routing/provide?arg=$hash").let(ResponseBody::string)
+    fun provide(hash: String): String = ipfs.callCmd("routing/provide?arg=$hash")
+        .use(ResponseBody::string)
 
 }

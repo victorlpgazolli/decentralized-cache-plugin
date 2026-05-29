@@ -13,6 +13,11 @@ dependencyResolutionManagement {
         gradlePluginPortal()
         maven("https://jitpack.io")
     }
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
 }
 plugins {
     id("dev.victorlpgazolli.decentralized-cache-plugin") version "1.1.0"
@@ -24,7 +29,9 @@ buildCache {
     remote<dev.victorlpgazolli.DecentralizedConfiguration> {
         isEnabled = true
         isPush    = true
-        baseIpns = "/ipns/gradle.victorlpgazolli.dev"
+        peerIpnsList = listOf(
+            "/ipns/gradle.victorlpgazolli.dev"
+        )
         verbose = true
     }
 }

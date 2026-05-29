@@ -40,7 +40,8 @@ internal class IpfsBuildCacheService(
                 filePath = compressedFile.absolutePath,
                 objectName = cacheKey.hashCode.toString(),
             )
-        }.onSuccess {
+        }.onSuccess { generatedHash ->
+            ipfsClient.cacheManifest.addCacheEntry(cacheKey.hashCode, generatedHash)
             logger.log(
                 LOG_TAG,
                 cacheKey.hashCode,

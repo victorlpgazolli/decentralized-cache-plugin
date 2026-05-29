@@ -51,6 +51,7 @@ internal class CacheManifest(
 
     private lateinit var client: IpfsClient
     private lateinit var manifest: Manifest
+    private val manifestLock = Any()
 
     private val manifestFileName = "manifest.json"
     private val emptyManifest = Manifest(
@@ -65,29 +66,38 @@ internal class CacheManifest(
         } else { null }
     }
     private fun fetch(): Manifest {
-        val manifestIpnsPath = "${client.baseIpns}/$manifestFileName"
-
         logger.log(LOG_TAG, "fetch", "fetching local manifest at $manifestFileName")
         client.mfs.read(manifestFileName)
             ?.readAllBytes()
             ?.decodeToString()
             ?.decodeManifest()
             ?.let {
-                logger.log(LOG_TAG, "fetch", "found local manifest: $it")
+                logger.log(LOG_TAG, "fetch", "found local manifest")
                 return it
             }
 
-        logger.log(LOG_TAG, "fetch", "fetching remote manifest at $manifestIpnsPath")
-        client.getObject(manifestIpnsPath)
+        client.configuration.peerIpnsList.fold(emptyManifest) { acc, peerIpns ->
+            val remoteManifest = "$peerIpns/$manifestFileName".fetchManifest()
+
+            val mergedHashs = acc.hashs + remoteManifest.hashs
+
+            acc.copy(
+                hashs = mergedHashs
+            )
+        }.takeIf { it.hashs.isNotEmpty() }?.let {
+            return it
+        }
+
+        return saveEmptyManifest()
+    }
+    fun String.fetchManifest(): Manifest {
+        logger.log(LOG_TAG, "fetch", "fetching manifest from peer: $this")
+
+        return  client.getObject(this)
             ?.readAllBytes()
             ?.decodeToString()
             ?.decodeManifest()
-            ?.let {
-                logger.log(LOG_TAG, "fetch", "found remote manifest: $it")
-                return it
-            }
-
-        return saveEmptyManifest()
+            ?: emptyManifest
     }
 
     private fun saveEmptyManifest(): Manifest {
@@ -112,13 +122,54 @@ internal class CacheManifest(
 
         return emptyManifest
     }
+    public fun addCacheEntry(objectName: String, ipfsHash: String) {
+        synchronized(manifestLock) {
+            if (this::manifest.isInitialized) {
+                logger.log(LOG_TAG, "addCacheEntry", "Adding $objectName -> $ipfsHash to manifest")
+
+                val updatedHashs = manifest.hashs.toMutableMap()
+                updatedHashs[objectName] = ipfsHash
+
+                this.manifest = Manifest(
+                    publishKeyName = manifest.publishKeyName,
+                    hashs = updatedHashs
+                )
+
+                val tmpManifestPath = "/tmp/local-ipfs-gradle-cache"
+                File(tmpManifestPath).mkdirs()
+
+                val newManifestFile = File("$tmpManifestPath/$manifestFileName")
+                newManifestFile.writeText(manifest.encodeManifest())
+
+                client.mfs.delete("/local-ipfs-gradle-cache/$manifestFileName")
+                val hash = client.putObject(
+                    filePath = newManifestFile.absolutePath,
+                    objectName = manifestFileName
+                )
+
+                publishManifestToNetwork(hash)
+            }
+        }
+    }
+    private fun publishManifestToNetwork(manifestIpfsHash: String) {
+        logger.log(LOG_TAG, "publishManifestToNetwork", "updating ipns to point to the new manifest: $manifestIpfsHash")
+
+        runCatching {
+            client.client.info.ipfs.callCmd("name/publish?arg=$manifestIpfsHash")
+                .use { it.string() }
+        }.onSuccess { response ->
+            logger.log(LOG_TAG, "publishManifestToNetwork", "IPNS updated: $response")
+        }.onFailure {
+            logger.log(LOG_TAG, "publishManifestToNetwork", "fail to update ipns: ${it.message}")
+        }
+    }
     val jsonParser = Json {
         ignoreUnknownKeys = true
     }
 
     private fun String.decodeManifest(): Manifest {
         runCatching {
-            logger.log(LOG_TAG, "decodeManifest", "decoding manifest: $this")
+            logger.log(LOG_TAG, "decodeManifest", "decoding manifest")
 
             return when(val manifestResult = jsonParser.decodeFromString<CacheManifestResult>(this)) {
                 is CacheManifestResult.Failure -> {

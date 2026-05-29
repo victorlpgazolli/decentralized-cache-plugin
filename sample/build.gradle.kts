@@ -1,5 +1,5 @@
 plugins {
-    java
+    alias(libs.plugins.kotlinJvm)
 }
 
 repositories {

@@ -20,15 +20,16 @@ internal class IpfsBuildCacheService(
         cacheKey: BuildCacheKey,
         cacheEntryWriter: BuildCacheEntryWriter,
     ) {
-        val path = "/tmp/ipfs-cache-${cacheKey.hashCode}.gz"
-        logger.log(LOG_TAG, cacheKey.hashCode, "Storing cache entry at $path")
+        val key = cacheKey.toString()
+        val path = "/tmp/ipfs-cache-$key.gz"
+        logger.log(LOG_TAG, key, "Storing cache entry at $path")
 
         val compressedFile = File(path).apply {
             createNewFile()
             deleteOnExit()
         }
 
-        logger.log(LOG_TAG, cacheKey.hashCode, "Writing to $path")
+        logger.log(LOG_TAG, key, "Writing to $path")
         GZIPOutputStream(FileOutputStream(compressedFile)).use { gzipOutputStream ->
             cacheEntryWriter.writeTo(gzipOutputStream)
             gzipOutputStream.flush()
@@ -38,19 +39,19 @@ internal class IpfsBuildCacheService(
         runCatching {
             ipfsClient.putObject(
                 filePath = compressedFile.absolutePath,
-                objectName = cacheKey.hashCode.toString(),
+                objectName = key,
             )
         }.onSuccess { generatedHash ->
-            ipfsClient.cacheManifest.addCacheEntry(cacheKey.hashCode, generatedHash)
+            ipfsClient.cacheManifest.addCacheEntry(key, generatedHash)
             logger.log(
                 LOG_TAG,
-                cacheKey.hashCode,
+                key,
                 "Successfully stored cache at ${compressedFile.absolutePath}"
             )
         }.onFailure { exception ->
             logger.log(
                 LOG_TAG,
-                cacheKey.hashCode,
+                key,
                 "Failed to store cache, error: ${exception.message}"
             )
         }
@@ -59,18 +60,19 @@ internal class IpfsBuildCacheService(
         cacheKey: BuildCacheKey,
         cacheEntryReader: BuildCacheEntryReader,
     ): Boolean {
-        logger.log(LOG_TAG, cacheKey.hashCode, "Loading cache entry")
-        val inputStream = ipfsClient.getObject(cacheKey.hashCode)
+        val key = cacheKey.toString()
+        logger.log(LOG_TAG, key, "Loading cache entry")
+        val inputStream = ipfsClient.getObject(key)
 
         if (inputStream == null) {
-            logger.log(LOG_TAG, cacheKey.hashCode, "Cache entry not found")
+            logger.log(LOG_TAG, key, "Cache entry not found")
             return false
         }
 
         GZIPInputStream(inputStream).use { gis ->
             cacheEntryReader.readFrom(gis)
         }
-        logger.log(LOG_TAG, cacheKey.hashCode, "cache LOADED")
+        logger.log(LOG_TAG, key, "cache LOADED")
         return true
     }
 

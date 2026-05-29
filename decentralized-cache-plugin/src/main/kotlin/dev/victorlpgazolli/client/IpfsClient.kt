@@ -3,7 +3,6 @@ package dev.victorlpgazolli.client
 import com.squareup.moshi.JsonAdapter
 import dev.victorlpgazolli.DecentralizedConfiguration
 import dev.victorlpgazolli.utils.Logger
-import io.github.novacrypto.base58.Base58
 import io.ipfs.kotlin.IPFS
 import io.ipfs.kotlin.IPFSConfiguration
 import io.ipfs.kotlin.IPFSConnection
@@ -85,9 +84,7 @@ internal class IpfsClient (
         } ?: logger.log(LOG_TAG, objectHash, "not found at MFS")
 
         logger.log(LOG_TAG, objectHash, "searching peers")
-        val peerObjectHash: String? = Base58
-            .base58Encode(objectHash.toByteArray())
-            .let { cacheManifest.translateToIpfsHash(it) }
+        val peerObjectHash = cacheManifest.translateToIpfsHash(objectHash)
 
         logger.log(LOG_TAG, objectHash, "peerObjectHash: $peerObjectHash")
         peerObjectHash?.let {

@@ -29,7 +29,8 @@ internal class IpfsBuildCacheServiceFactory : BuildCacheServiceFactory<Decentral
             logger = logger
         )
 
-        logger.log(LOG_TAG, "IpfsBuildCacheServiceFactory", "host=${ipfsClient.hostBaseUrl ?: "default"}; version=${ipfsClient.version}")
+        val host = ipfsClient.hostBaseUrl ?: "default"
+        logger.log(LOG_TAG, "IpfsBuildCacheServiceFactory", "host=$host; version=${ipfsClient.version}")
 
         return IpfsBuildCacheService(
             ipfsClient = ipfsClient,

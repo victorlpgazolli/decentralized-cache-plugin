@@ -1,40 +1,40 @@
+rootProject.name = "sample"
+
 pluginManagement {
     repositories {
-        mavenLocal()
-        mavenCentral()
         gradlePluginPortal()
+        mavenCentral()
         maven("https://jitpack.io")
+    }
+    // Inclui o build pai para resolver o plugin
+    includeBuild("../")
+}
+
+// 1. Aplique o plugin AQUI, no settings
+plugins {
+    id("dev.victorlpgazolli.decentralized-cache-plugin")
+}
+
+// 2. Configure o cache AQUI
+buildCache {
+    local { isEnabled = false }
+
+    // O plugin já registrou 'DecentralizedConfiguration' no seu SettingsPlugin
+    remote<dev.victorlpgazolli.DecentralizedConfiguration> {
+        isEnabled = true
+        isPush = true
+        peerIpnsList = listOf(
+            "/ipns/k51qzi5uqu5dl6o7ryaysxvnci02dt399cdnfk7v6pwhoka7qxuhoeu5v0qg76",
+            "/ipns/k51qzi5uqu5di16xkjsdwb7k54b5kjyocw0i7fjds1wwi8aw9xkhr20bwb8uf4"
+        )
+        verbose = true
     }
 }
 
 dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-        maven("https://jitpack.io")
-    }
     versionCatalogs {
         create("libs") {
             from(files("../gradle/libs.versions.toml"))
         }
     }
 }
-plugins {
-    id("dev.victorlpgazolli.decentralized-cache-plugin") version "1.1.0"
-}
-
-buildCache {
-    local { isEnabled = false }
-
-    remote<dev.victorlpgazolli.DecentralizedConfiguration> {
-        isEnabled = true
-        isPush    = true
-        peerIpnsList = listOf(
-            "/ipns/k51qzi5uqu5dhv6ac3tjl39vm9nljzd2yfxt4rgrhg41crl3337bhpxletgt16",
-            "/ipns/k51qzi5uqu5djvi4be7r7u511n7hok1yntr4am7glm9kmdd2weyr7ov16ecpea",
-        )
-        verbose = true
-    }
-}
-
-rootProject.name = "sample"

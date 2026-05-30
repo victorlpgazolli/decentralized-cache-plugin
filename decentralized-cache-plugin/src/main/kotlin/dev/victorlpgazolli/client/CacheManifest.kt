@@ -67,38 +67,37 @@ internal class CacheManifest(
         } else { null }
     }
     private fun fetch(): Manifest {
-        logger.log(LOG_TAG, "fetch", "fetching local manifest at $manifestFileName")
-        client.mfs.read(manifestFileName)
-            ?.readAllBytes()
-            ?.decodeToString()
-            ?.decodeManifest()
-            ?.let {
-                logger.log(LOG_TAG, "fetch", "found local manifest")
-                return it
+        logger.log(LOG_TAG, "fetch", "fetching manifest from peers...")
+
+        val merged = client.configuration.peerIpnsList.fold(emptyManifest) { acc, peerIpns ->
+            val remoteManifest = fetchManifest(from = peerIpns)
+
+            if (remoteManifest.hashs.isNotEmpty()) {
+                val mergedHashs = acc.hashs + remoteManifest.hashs
+                acc.copy(hashs = mergedHashs)
+            } else {
+                acc
             }
+        }
 
-        client.configuration.peerIpnsList.fold(emptyManifest) { acc, peerIpns ->
-            val remoteManifest = "$peerIpns/$manifestFileName".fetchManifest()
-
-            val mergedHashs = acc.hashs + remoteManifest.hashs
-
-            acc.copy(
-                hashs = mergedHashs
-            )
-        }.takeIf { it.hashs.isNotEmpty() }?.let {
-            return it
+        if (merged.hashs.isNotEmpty()) {
+            this.manifest = merged
+            return merged
         }
 
         return saveEmptyManifest()
     }
-    fun String.fetchManifest(): Manifest {
-        logger.log(LOG_TAG, "fetch", "fetching manifest from peer: $this")
+    fun fetchManifest(from: String): Manifest {
+        logger.log(LOG_TAG, "fetch", "fetching manifest from peer: $from")
 
-        return  client.getObject(this)
-            ?.readAllBytes()
-            ?.decodeToString()
-            ?.decodeManifest()
-            ?: emptyManifest
+        return runCatching {
+            client.getObject(from).use {
+                it?.readAllBytes()
+                    ?.decodeToString()
+                    ?.decodeManifest()
+                    ?: emptyManifest
+            }
+        }.getOrNull() ?: emptyManifest
     }
 
     private fun saveEmptyManifest(): Manifest {
@@ -182,6 +181,10 @@ internal class CacheManifest(
     }
 
     private fun String.decodeManifest(): Manifest {
+        if (isBlank()) {
+            logger.log(LOG_TAG, "decodeManifest", "Manifest is empty")
+            return emptyManifest
+        }
         runCatching {
             logger.log(LOG_TAG, "decodeManifest", "decoding manifest")
 

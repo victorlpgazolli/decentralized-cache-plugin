@@ -23,7 +23,7 @@ internal class IpfsClient (
 
     val client: IPFS by lazy {
         hostBaseUrl
-            ?.let { IPFS(IPFSConfiguration(it)) }
+            ?.let { IPFS(IPFSConfiguration("$it/api/v0/")) }
             ?: IPFS(IPFSConfiguration())
     }
     val mfs: Mfs by lazy {
@@ -62,17 +62,15 @@ internal class IpfsClient (
 
         logger.log(LOG_TAG, objectName, "announcing hash to network in background...")
 
-        CompletableFuture.runAsync {
-            runCatching {
-                Routing(client.info.ipfs).provide(result.Hash)
-                logger.log(LOG_TAG, objectName, "routing.provide completed")
-            }
+        runCatching {
+            Routing(client.info.ipfs).provide(result.Hash)
+            logger.log(LOG_TAG, objectName, "routing.provide completed")
         }
         return result.Hash
     }
 
-    private fun getIpfsHashFromObjectHash(objectHash: String): String? {
-
+    private fun getIpfsHashFromObjectHash(objectHash: String?): String? {
+        objectHash ?: return null
         val localPath = "/local-ipfs-gradle-cache/$objectHash"
         val localObjectHash: String? = mfs
             .stat(localPath)
@@ -97,25 +95,108 @@ internal class IpfsClient (
 
     fun getObject(
         objectName: String,
+        basePath: String = "/ipfs",
     ): InputStream? {
-        logger.log(LOG_TAG, objectName, "searching for $objectName ipfs hash")
+        logger.log(LOG_TAG, objectName, "Fetching object: $objectName")
 
-        val ipfsHash: String? = getIpfsHashFromObjectHash(objectName)
+        // SCENARIO 1: It is an absolute network path (e.g., fetching a manifest from a peer)
+        if (objectName.startsWith("/ipns/") || objectName.startsWith("/ipfs/")) {
+            return runCatching {
+                var targetPath = objectName
+                val baseUrl = System.getenv("IPFS_NODE_URL") ?: "http://127.0.0.1:5001"
 
-        if(ipfsHash == null) {
-            logger.log(LOG_TAG, objectName, "ipfsHash is null")
+                // 1. Explicit IPNS resolution via POST
+                if (objectName.startsWith("/ipns/")) {
+                    val ipnsKey = objectName.removePrefix("/ipns/")
+
+                    logger.log(LOG_TAG, objectName, "Resolving IPNS explicitly on API...")
+                    val resolveUrl = java.net.URL("$baseUrl/api/v0/name/resolve?arg=$ipnsKey")
+                    val connection = resolveUrl.openConnection() as java.net.HttpURLConnection
+                    connection.requestMethod = "POST"
+
+                    connection.connectTimeout = 5000
+                    connection.readTimeout = 10000
+
+                    if (connection.responseCode in 200..299) {
+                        val jsonResponse = connection.inputStream.bufferedReader().readText()
+                        val resolvedPath = "\"Path\":\"(.*?)\"".toRegex().find(jsonResponse)?.groups?.get(1)?.value
+
+                        if (resolvedPath != null) {
+                            logger.log(LOG_TAG, objectName, "IPNS translated to: $resolvedPath")
+                            targetPath = resolvedPath
+                        }
+                    } else {
+                        logger.log(LOG_TAG, objectName, "HTTP error resolving IPNS: ${connection.responseCode}")
+                        return@runCatching null
+                    }
+                }
+
+                logger.log(LOG_TAG, objectName, "Downloading data from network via native API: $targetPath")
+                val catUrl = java.net.URL("$baseUrl/api/v0/cat?arg=$targetPath")
+                val catConnection = catUrl.openConnection() as java.net.HttpURLConnection
+                catConnection.requestMethod = "POST"
+                catConnection.connectTimeout = 5000
+
+                catConnection.readTimeout = 10000
+
+                if (catConnection.responseCode in 200..299) {
+                    val bytes = catConnection.inputStream.readBytes()
+
+                    if (bytes.isEmpty()) {
+                        logger.log(LOG_TAG, objectName, "Warning: The API returned 0 bytes for $targetPath.")
+                        return@runCatching null
+                    }
+
+                    return@runCatching bytes.inputStream()
+                } else {
+                    logger.log(LOG_TAG, objectName, "HTTP error in cat: ${catConnection.responseCode}")
+                    return@runCatching null
+                }
+            }.onFailure {
+                logger.log(LOG_TAG, objectName, "Exception while fetching from network: ${it.message}")
+            }.getOrNull()
+        }
+
+        // SCENARIO 2: It is a Gradle Build Cache key (e.g., 3b9db69fb8...)
+        val ipfsHash = getIpfsHashFromObjectHash(objectName)
+        if (ipfsHash == null) {
+            logger.log(LOG_TAG, objectName, "ipfsHash not found for $objectName")
             return null
         }
-        logger.log(LOG_TAG, objectName, "$objectName translate to $ipfsHash")
 
-        val hashPath = "/ipfs/$ipfsHash"
+        val hashPath = "$basePath/$ipfsHash"
+        val baseUrl = System.getenv("IPFS_NODE_URL") ?: "http://127.0.0.1:5001"
 
-        return mfs.read(objectName)
-            ?: client.get.catBytes(hashPath).let {
-                mfs.copy(from = hashPath,to = "/local-ipfs-gradle-cache/$objectName")
-                it.inputStream()
+        // 1. Attempts to download the binary GZIP via RPC API (Ensures raw bytes)
+        return runCatching {
+            logger.log(LOG_TAG, objectName, "Downloading binary GZIP via POST RPC API: $hashPath")
+
+            // We use the API CAT endpoint via POST to avoid gateway issues
+            val catUrl = java.net.URL("$baseUrl/api/v0/cat?arg=$hashPath")
+            val catConnection = catUrl.openConnection() as java.net.HttpURLConnection
+            catConnection.requestMethod = "POST"
+            catConnection.connectTimeout = 5000
+            // Gives the daemon more time to download blocks from the P2P network
+            catConnection.readTimeout = 30000
+
+            if (catConnection.responseCode in 200..299) {
+                // (Optional) Copy to MFS in background so next access is local
+                CompletableFuture.runAsync {
+                    runCatching {
+                        mfs.copy(from = hashPath, to = "/local-ipfs-gradle-cache/$objectName")
+                    }
+                }
+
+                return@runCatching catConnection.inputStream.buffered()
+            } else {
+                logger.log(LOG_TAG, objectName, "HTTP error in cat: ${catConnection.responseCode}")
+                return@runCatching null
             }
+        }.onFailure {
+            logger.log(LOG_TAG, objectName, "Exception while downloading GZIP from P2P network: ${it.message}")
+        }.getOrNull()
     }
+
 }
 
 data class Hash(val Hash: String)

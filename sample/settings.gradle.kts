@@ -30,7 +30,8 @@ buildCache {
         isEnabled = true
         isPush    = true
         peerIpnsList = listOf(
-            "/ipns/gradle.victorlpgazolli.dev"
+            "/ipns/k51qzi5uqu5dhv6ac3tjl39vm9nljzd2yfxt4rgrhg41crl3337bhpxletgt16",
+            "/ipns/k51qzi5uqu5djvi4be7r7u511n7hok1yntr4am7glm9kmdd2weyr7ov16ecpea",
         )
         verbose = true
     }

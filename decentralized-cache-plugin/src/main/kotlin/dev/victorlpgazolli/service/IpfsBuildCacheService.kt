@@ -80,6 +80,7 @@ internal class IpfsBuildCacheService(
     override fun close() {
         logger.log(LOG_TAG, "close", "Gradle build finished. Closing cache service...")
 
-        ipfsClient.cacheManifest.flush()
+        runCatching { ipfsClient.cacheManifest.flush() }
+            .onFailure { logger.log(LOG_TAG, "close", "Failed to flush manifest: ${it.message}") }
     }
 }

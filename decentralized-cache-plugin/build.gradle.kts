@@ -5,7 +5,8 @@ plugins {
     alias(libs.plugins.serialization)
 }
 
-val groupId = "dev.victorlpgazolli.decentralized-cache-plugin"
+val pluginId = "dev.victorlpgazolli.decentralized-cache-plugin"
+val mavenGroupId = "dev.victorlpgazolli"
 val versionNumber = "1.1.0"
 
 group = "dev.victorlpgazolli"
@@ -15,8 +16,8 @@ version = versionNumber
 gradlePlugin {
     plugins {
         create("decentralizedCachePlugin") {
-            id = groupId
-            group = groupId
+            id = pluginId
+            group = mavenGroupId
             implementationClass = "dev.victorlpgazolli.DecentralizedCachePlugin"
             version = versionNumber
             tags.set(listOf("cache", "ipfs", "gradle", "distributed"))
@@ -42,10 +43,12 @@ dependencies {
 mavenPublishing {
     publishToMavenCentral()
 
-    signAllPublications()
+    if (System.getenv("CI") != null) {
+        signAllPublications()
+    }
 
     coordinates(
-        groupId = groupId,
+        groupId = mavenGroupId,
         version = versionNumber
     )
 

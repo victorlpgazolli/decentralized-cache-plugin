@@ -6,20 +6,17 @@ pluginManagement {
         mavenCentral()
         maven("https://jitpack.io")
     }
-    // Inclui o build pai para resolver o plugin
+
     includeBuild("../")
 }
 
-// 1. Aplique o plugin AQUI, no settings
 plugins {
     id("dev.victorlpgazolli.decentralized-cache-plugin")
 }
 
-// 2. Configure o cache AQUI
 buildCache {
     local { isEnabled = false }
 
-    // O plugin já registrou 'DecentralizedConfiguration' no seu SettingsPlugin
     remote<dev.victorlpgazolli.DecentralizedConfiguration> {
         isEnabled = true
         isPush = true

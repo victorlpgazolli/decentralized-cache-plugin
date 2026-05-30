@@ -43,7 +43,7 @@ internal class IpfsClient (
     fun putObject(
         filePath: String,
         objectName: String,
-    ): String{
+    ): String {
         logger.log(LOG_TAG, objectName, "adding from $filePath")
 
         val result = client.add.file(File(filePath))

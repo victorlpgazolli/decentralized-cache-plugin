@@ -115,11 +115,14 @@ internal class CacheManifest(
         newManifestFile.writeText(emptyManifest.encodeManifest())
         logger.log(LOG_TAG, "saveEmptyManifest", "created empty manifest at $tmpManifestPath")
 
-        client.putObject(
-            filePath = newManifestFile.absolutePath,
-            objectName = manifestFileName,
-        )
-
+        runCatching {
+            client.putObject(
+                filePath = newManifestFile.absolutePath,
+                objectName = manifestFileName,
+            )
+        }.getOrElse {
+            logger.log(LOG_TAG, "saveEmptyManifest", "failed to save empty manifest: ${it.message}")
+        }
         return emptyManifest
     }
     public fun addCacheEntry(objectName: String, ipfsHash: String) {

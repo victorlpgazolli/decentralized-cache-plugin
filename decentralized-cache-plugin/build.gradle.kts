@@ -1,3 +1,5 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     `java-gradle-plugin`
     alias(libs.plugins.mavenPublish)
@@ -41,7 +43,7 @@ dependencies {
 
 
 mavenPublishing {
-    publishToMavenCentral()
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
     if (System.getenv("CI") != null) {
         signAllPublications()

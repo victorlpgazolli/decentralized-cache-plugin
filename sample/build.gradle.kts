@@ -1,13 +1,8 @@
 plugins {
-    java
+    alias(libs.plugins.kotlinJvm)
+    alias(libs.plugins.serialization)
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
-}
-tasks.register("testing") {
-    doLast {
-        println("Testing sample project")
-    }
 }

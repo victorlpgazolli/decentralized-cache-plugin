@@ -1,4 +1,4 @@
-name: Publish Packages
+name: Copilot
 on:
   workflow_dispatch:
 

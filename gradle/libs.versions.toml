@@ -3,15 +3,25 @@ kotlin = "2.4.10"
 novaCrypto = "2022.01.17"
 pluginPublish = "2.0.0"
 mavenPublish = "0.30.0"
+ktor = "3.5.2"
+kodein = "7.30.0"
+
 
 [libraries]
 ipfs = { group = "com.github.ligi", name = "ipfs-api-kotlin", version = "0.15" }
 novaCrypto = { group = "io.github.novacrypto", name = "Base58", version.ref = "novaCrypto" }
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.11.0" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+kodein = { module = "org.kodein.di:kodein-di", version.ref = "kodein" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+
 
 [plugins]
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "pluginPublish" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "pluginPublish" }
 decentralized-cache = { id = "dev.victorlpgazolli.decentralized-cache-plugin" }

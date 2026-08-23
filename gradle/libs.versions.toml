@@ -7,7 +7,7 @@ mavenPublish = "0.30.0"
 [libraries]
 ipfs = { group = "com.github.ligi", name = "ipfs-api-kotlin", version = "0.15" }
 novaCrypto = { group = "io.github.novacrypto", name = "Base58", version.ref = "novaCrypto" }
-kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.8.1" }
+kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.11.0" }
 
 [plugins]
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

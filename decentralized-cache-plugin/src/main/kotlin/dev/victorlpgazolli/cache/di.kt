@@ -5,24 +5,33 @@ import dev.victorlpgazolli.cache.model.CacheService
 import dev.victorlpgazolli.cache.providers.local.LocalCacheProvider
 import dev.victorlpgazolli.cache.providers.memory.MemoryCacheProvider
 import dev.victorlpgazolli.cache.providers.remote.RemoteCacheProvider
+import org.gradle.internal.cc.base.logger
+import org.kodein.di.bindSet
 import org.kodein.di.bindSingleton
 import org.kodein.di.instance
 
+internal const val MEMORY_CACHE_PROVIDER_TAG = "memory"
+internal const val LOCAL_CACHE_PROVIDER_TAG = "local"
+internal const val REMOTE_CACHE_PROVIDER_TAG = "remote"
+
 val cacheDiModule = org.kodein.di.DI.Module("cache") {
-    bindSingleton<CacheService> {
-        CacheServiceImpl().apply {
-            registerProvider(
-                MemoryCacheProvider()
+    bindSet<CacheProvider> {
+        bindSingleton(MEMORY_CACHE_PROVIDER_TAG) {
+            MemoryCacheProvider(
+                logger = instance(),
             )
-            registerProvider(
-                LocalCacheProvider(
-                    ipfsConnectedSession = instance()
-                )
+        }
+        bindSingleton(LOCAL_CACHE_PROVIDER_TAG) {
+            LocalCacheProvider(
+                ipfsConnectedSession = instance(),
+                logger = instance(),
             )
-            registerProvider(
-                RemoteCacheProvider(
-                    ipfsReader = instance()
-                )
+        }
+        bindSingleton(REMOTE_CACHE_PROVIDER_TAG) {
+            RemoteCacheProvider(
+                ipfsReader = instance(),
+                ipfsConnectedSession = instance(),
+                logger = instance(),
             )
         }
     }

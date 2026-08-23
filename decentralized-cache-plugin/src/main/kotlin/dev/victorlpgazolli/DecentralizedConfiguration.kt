@@ -9,3 +9,6 @@ abstract class DecentralizedConfiguration: AbstractBuildCache() {
     var verbose: Boolean = false
 }
 
+class DecentralizedConfigurationHolder {
+    internal lateinit var configuration: DecentralizedConfiguration
+}

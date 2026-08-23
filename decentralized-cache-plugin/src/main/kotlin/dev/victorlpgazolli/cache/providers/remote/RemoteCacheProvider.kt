@@ -3,7 +3,14 @@ package dev.victorlpgazolli.cache.providers.remote
 import dev.victorlpgazolli.cache.model.CacheProvider
 import dev.victorlpgazolli.ipfs.IpfsConnectedSession
 import dev.victorlpgazolli.ipfs.IpfsReader
+import dev.victorlpgazolli.utils.Logger
 
 internal class RemoteCacheProvider(
-    private val ipfsReader: IpfsReader
-) : CacheProvider by IpfsCacheProvider(ipfsReader)
+    private val ipfsReader: IpfsReader,
+    private val ipfsConnectedSession: IpfsConnectedSession,
+    private val logger: Logger,
+) : CacheProvider by IpfsCacheProvider(
+    ipfsReader = ipfsReader,
+    ipfsConnectedSession = ipfsConnectedSession,
+    logger = logger
+)

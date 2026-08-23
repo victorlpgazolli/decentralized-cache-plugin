@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.ipfs)
     implementation(libs.novaCrypto)
     implementation(libs.kotlinx.serialization)
+    implementation(kotlin("stdlib"))
 }
 
 

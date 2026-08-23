@@ -6,12 +6,27 @@ import dev.victorlpgazolli.utils.Logger
 import io.ipfs.kotlin.IPFS
 import io.ipfs.kotlin.IPFSConfiguration
 import io.ipfs.kotlin.IPFSConnection
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import okhttp3.ResponseBody
 import java.io.File
 import java.io.InputStream
 import java.util.concurrent.CompletableFuture
 
 private const val LOG_TAG = "[decentralized-cache]"
+@Serializable
+internal data class Peer(
+    @SerialName("Peer")
+    val peer: String
+
+)
+@Serializable
+internal data class SwarmPeersResponse(
+    @SerialName("Peers")
+    val peers: List<Peer>
+
+)
 
 internal class IpfsClient (
     val configuration: DecentralizedConfiguration,
@@ -32,6 +47,12 @@ internal class IpfsClient (
             logger = logger
         )
     }
+
+    val peers: List<String> by lazy {
+        fetchPeers()
+    }
+
+
     init {
         cacheManifest.setup(this)
     }
@@ -48,7 +69,7 @@ internal class IpfsClient (
 
         val result = client.add.file(File(filePath))
 
-        logger.log(LOG_TAG, objectName, "client.add.file - size: ${result.Hash}")
+        logger.log(LOG_TAG, objectName, "client.add.file - hash: ${result.Hash}")
 
         logger.log(LOG_TAG, objectName, "writing hash to MFS")
         val from = "/ipfs/${result.Hash}"
@@ -109,8 +130,9 @@ internal class IpfsClient (
                 if (objectName.startsWith("/ipns/")) {
                     val ipnsKey = objectName.removePrefix("/ipns/")
 
-                    logger.log(LOG_TAG, objectName, "Resolving IPNS explicitly on API...")
-                    val resolveUrl = java.net.URL("$baseUrl/api/v0/name/resolve?arg=$ipnsKey")
+                    val fullUrl = "$baseUrl/api/v0/name/resolve?arg=$ipnsKey&recursive=true"
+                    logger.log(LOG_TAG, objectName, "Resolving IPNS explicitly on API... $fullUrl")
+                    val resolveUrl = java.net.URL(fullUrl)
                     val connection = resolveUrl.openConnection() as java.net.HttpURLConnection
                     connection.requestMethod = "POST"
 
@@ -196,6 +218,39 @@ internal class IpfsClient (
             logger.log(LOG_TAG, objectName, "Exception while downloading GZIP from P2P network: ${it.message}")
         }.getOrNull()
     }
+
+    private fun fetchPeers(): List<String> = runCatching {
+        val jsonParser = Json {
+            ignoreUnknownKeys = true
+        }
+        val swarmPeersUrl = java.net.URL("$hostBaseUrl/api/v0/swarm/peers")
+        val catConnection = swarmPeersUrl.openConnection() as java.net.HttpURLConnection
+        catConnection.requestMethod = "POST"
+        catConnection.connectTimeout = 5000
+
+        catConnection.readTimeout = 10000
+
+        if (catConnection.responseCode in 200..299) {
+            val bytes = catConnection.inputStream.readBytes()
+            val result = bytes.inputStream().use {
+                val peersResult = it.readAllBytes()
+                    ?.decodeToString()
+                    ?.let { result ->
+                        logger.log(LOG_TAG, "IpfsClient init","SwarmPeersResponse raw result: $result")
+                        jsonParser.decodeFromString<SwarmPeersResponse>(result)
+                    }
+
+                return@use peersResult
+            }
+            logger.log(LOG_TAG, "IpfsClient init","SwarmPeersResponse result: $result")
+
+            return@runCatching result?.peers?.map { it.peer } ?: emptyList()
+        } else {
+            return@runCatching emptyList()
+        }
+    }.onFailure {
+        logger.log(LOG_TAG, "IpfsClient init","Failed to fetch SwarmPeersResponse from IPFS node: ${it.message}")
+    }.getOrDefault(emptyList())
 
 }
 

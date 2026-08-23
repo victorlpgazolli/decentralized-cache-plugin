@@ -67,9 +67,11 @@ internal class CacheManifest(
         } else { null }
     }
     private fun fetch(): Manifest {
-        logger.log(LOG_TAG, "fetch", "fetching manifest from peers...")
+        val peerList = client.configuration.peerIpnsList + client.peers.map { "/ipns/$it" }
 
-        val merged = client.configuration.peerIpnsList.fold(emptyManifest) { acc, peerIpns ->
+        logger.log(LOG_TAG, "fetch", "fetching manifest from ${peerList.size} peers... peerList=${peerList.joinToString(",")}")
+
+        val merged = peerList.fold(emptyManifest) { acc, peerIpns ->
             val remoteManifest = fetchManifest(from = peerIpns)
 
             if (remoteManifest.hashs.isNotEmpty()) {

@@ -1,4 +1,4 @@
-.PHONY: run_sample publish_local clear_cache docker_clear_cache
+.PHONY: run_sample publish_local clear_cache docker_clear_cache docker_start
 
 run_sample: publish_local
 	cd sample && ../gradlew clean test --build-cache --info
@@ -19,3 +19,12 @@ clear_cache:
 	ipfs pin ls --type recursive | cut -d" " -f1 | xargs -I {} ipfs pin rm {}
 	ipfs files rm -r /local-ipfs-gradle-cache
 	ipfs repo gc
+
+docker_start:
+	docker-compose up -d
+	sleep 10
+	./connect-peers.sh
+
+
+#docker_run:
+#	docker exec -it ipfs-pc-1 bash

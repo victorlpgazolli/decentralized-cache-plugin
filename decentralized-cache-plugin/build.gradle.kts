@@ -9,7 +9,7 @@ plugins {
 
 val pluginId = "dev.victorlpgazolli.decentralized-cache-plugin"
 val mavenGroupId = "dev.victorlpgazolli"
-val versionNumber = "1.1.0"
+val versionNumber = "1.2.0"
 
 group = "dev.victorlpgazolli"
 

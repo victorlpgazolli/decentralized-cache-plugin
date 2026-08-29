@@ -31,17 +31,47 @@ The decentralized network i chose is called [IPFS](https://ipfs.io/), i highly r
 
 ## Usage
 
-// TODO
-
 ### Apply plugin in settings.gradle
 
-// TODO
+```kotlin
+pluginManagement {
+    repositories {
+        mavenCentral() // required for this plugin to be resolved
+        maven("https://jitpack.io") // required for the plugin dependency to be resolved
+    }
+}
+
+plugins {
+    id("dev.victorlpgazolli.decentralized-cache-plugin")
+}
+```
 
 ### Configure build cache
 
-// TODO
+```kotlin
+buildCache {
+    // forcing remote cache, not required:
+    local { isEnabled = false } 
 
-## Compatibility
+    remote<dev.victorlpgazolli.DecentralizedConfiguration> {
+        isEnabled = true
+        isPush = true
 
-The plugin is compatible with Gradle `8.4` and higher and Java `21` and higher.
+        // list of ipns of peers you want to fetch 
+        // your cache from, not required but recommended:
+        peerIpnsList = listOf() 
+    }
+}
+```
 
+### Running ipfs daemon
+
+This project was created with the assumption that you already have an ipfs node running on your machine, if not, please follow the instructions on the [ipfs documentation](https://docs.ipfs.io/install/command-line/) to install and run it.
+
+It is important to have in mind that IPFS connects you to a public p2p network, so any cache created with this plugin enabled will be public,
+So if you are working on a private project you should consider using IPFS in a private network instead. My recommendation is to set up like I did [here](./init-config.sh)
+
+This command will start the ipfs daemon, which is required for the plugin to work properly:
+```shell
+ipfs daemon
+```

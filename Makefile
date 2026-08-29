@@ -21,7 +21,7 @@ clear_cache:
 	ipfs repo gc
 
 docker_start:
-	docker-compose up -d
+	docker compose up -d
 	sleep 10
 	./connect-peers.sh
 

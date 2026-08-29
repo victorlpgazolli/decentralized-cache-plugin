@@ -3,25 +3,23 @@ package dev.victorlpgazolli.utils
 
 interface Logger {
     fun log(
-        logTag: String,
         context: String,
         message: String
     )
 }
 class SimpleLogger: Logger {
     override fun log(
-        logTag: String,
         context: String,
         message: String
     ) {
+        val callerName = Throwable().stackTrace[1].className.substringAfterLast(".")
         println(
-            "$logTag [$context] $message"
+            "[${callerName}] [$context] $message"
         )
     }
 }
 class QuietLogger: Logger {
     override fun log(
-        logTag: String,
         context: String,
         message: String
     ) {}

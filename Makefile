@@ -16,6 +16,6 @@ docker_clear_cache:
 
 clear_cache:
 	rm -rf sample/build
-	ipfs files ls /local-ipfs-gradle-cache | while read f; do ipfs files rm -r "/local-ipfs-gradle-cache/$f"; done
 	ipfs pin ls --type recursive | cut -d" " -f1 | xargs -I {} ipfs pin rm {}
+	ipfs files rm -r /local-ipfs-gradle-cache
 	ipfs repo gc

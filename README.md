@@ -1,6 +1,6 @@
-# Decentralized Gradle Build Cache Plugin
+# Decentralized Gradle Build Cache Plugin PoC
 
-Plugin to use a decentralized network as a medium to fetch and share cache for Gradle builds.
+Plugin to use a decentralized network as a medium to share cache for Gradle builds.
 
 ## Motivation:
 Gradle build cache is a great feature to speed up builds by reusing outputs from previous builds. 
@@ -20,6 +20,7 @@ This project tries to approach the problem from a different angle, instead of re
 the main goal here is to share cache between developers in a decentralized way, using a established peer-to-peer network.
 I couldn't find any other plugin that does this, so i decided to create one.
 
+There are good reasons we don't see decentralized build cache in the wild, ignoring the security aspect, [it's officially not recommended](https://docs.gradle.org/current/userguide/build_cache_use_cases.html#sec:share_results_between_developers) to developers share their build cache. 
 
 ## How it works:
 

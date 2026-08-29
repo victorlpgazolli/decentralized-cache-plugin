@@ -12,8 +12,8 @@ val mavenGroupId = "dev.victorlpgazolli"
 val versionNumber = "1.1.0"
 
 group = "dev.victorlpgazolli"
-version = versionNumber
 
+version = versionNumber
 
 gradlePlugin {
     plugins {
@@ -48,7 +48,6 @@ dependencies {
     implementation(kotlin("stdlib"))
 }
 
-
 mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
@@ -56,10 +55,7 @@ mavenPublishing {
         signAllPublications()
     }
 
-    coordinates(
-        groupId = mavenGroupId,
-        version = versionNumber
-    )
+    coordinates(groupId = mavenGroupId, version = versionNumber)
 
     pom {
         name.set("Decentralized Gradle build cache plugin")
@@ -74,14 +70,8 @@ mavenPublishing {
             }
         }
 
-        developers {
-            developer {
-                id.set("victorlpgazolli")
-            }
-        }
+        developers { developer { id.set("victorlpgazolli") } }
 
-        scm {
-            url.set("https://github.com/victorlpgazolli/decentralized-cache-plugin")
-        }
+        scm { url.set("https://github.com/victorlpgazolli/decentralized-cache-plugin") }
     }
 }

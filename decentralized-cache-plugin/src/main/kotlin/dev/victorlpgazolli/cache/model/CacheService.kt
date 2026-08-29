@@ -1,6 +1,7 @@
 package dev.victorlpgazolli.cache.model
 
-interface CacheService: CacheProvider {
+interface CacheService : CacheProvider {
     val providers: List<CacheProvider>
+
     fun registerProvider(provider: CacheProvider)
 }

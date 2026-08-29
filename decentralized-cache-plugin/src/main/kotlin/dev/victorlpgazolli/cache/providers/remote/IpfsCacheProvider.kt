@@ -21,40 +21,46 @@ internal class IpfsCacheProvider(
         manifestCacheHelper.fetchCacheEntries()
     }
 
-    override fun get(key: String): ByteArray? = runCatching {
-        val ipfsHash = remoteManifest[key]
+    override fun get(key: String): ByteArray? =
+        runCatching {
+                val ipfsHash = remoteManifest[key]
 
-        if (ipfsHash == null) {
-            logger.log("get", "Key $key not found in P2P manifest.")
-            return null
-        }
+                if (ipfsHash == null) {
+                    logger.log("get", "Key $key not found in P2P manifest.")
+                    return null
+                }
 
-        val readerKeyType = IpfsReaderKey.IpfsPath(ipfsHash)
+                val readerKeyType = IpfsReaderKey.IpfsPath(ipfsHash)
 
-        logger.log("get", "Downloading $key from IPFS ($ipfsHash)")
-        return ipfsReader.read(readerKeyType).use { it.readBytes() }
-
-    }.onFailure {
-        logger.log("get", "Failed to get value from IPFS for key: $key, error: ${it.message}")
-    }.getOrNull()
-
-    override fun put(key: CacheKeyType, value: ByteArray): CacheKeyType = runCatching {
-        when (key) {
-            is CacheKeyType.FilePath -> {
-                val result = ipfsConnectedSession.client.add.file(File(key.fullpath))
-                ipfsConnectedSession.client.pins.add(result.Hash)
-
-                return key.copy(
-                    ipfsHash = result.Hash
+                logger.log("get", "Downloading $key from IPFS ($ipfsHash)")
+                return ipfsReader.read(readerKeyType).use { it.readBytes() }
+            }
+            .onFailure {
+                logger.log(
+                    "get",
+                    "Failed to get value from IPFS for key: $key, error: ${it.message}",
                 )
             }
-            is CacheKeyType.Object -> {
-                return key
+            .getOrNull()
+
+    override fun put(key: CacheKeyType, value: ByteArray): CacheKeyType =
+        runCatching {
+                when (key) {
+                    is CacheKeyType.FilePath -> {
+                        val result = ipfsConnectedSession.client.add.file(File(key.fullpath))
+                        ipfsConnectedSession.client.pins.add(result.Hash)
+
+                        return key.copy(ipfsHash = result.Hash)
+                    }
+                    is CacheKeyType.Object -> {
+                        return key
+                    }
+                }
             }
-        }
-    }.onFailure {
-        logger.log("put", "Failed to put value for key: $key, error: ${it.message}")
-    }.getOrThrow()
+            .onFailure {
+                logger.log("put", "Failed to put value for key: $key, error: ${it.message}")
+            }
+            .getOrThrow()
 
     override fun remove(key: String) {
         logger.log("remove", "Cannot remove immutable IPFS content for key: $key")

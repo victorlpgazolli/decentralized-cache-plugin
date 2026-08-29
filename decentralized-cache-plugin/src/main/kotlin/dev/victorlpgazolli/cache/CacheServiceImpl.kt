@@ -6,6 +6,7 @@ import dev.victorlpgazolli.appDiModule
 import dev.victorlpgazolli.cache.model.CacheKeyType
 import dev.victorlpgazolli.cache.model.CacheProvider
 import dev.victorlpgazolli.ipfs.ProvideHashToNetworkUseCase
+import dev.victorlpgazolli.ipfs.UpdateManifestForCleanup
 import dev.victorlpgazolli.utils.Logger
 import org.gradle.caching.BuildCacheEntryReader
 import org.gradle.caching.BuildCacheEntryWriter
@@ -16,9 +17,8 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.direct
 import org.kodein.di.instance
+import java.util.zip.GZIPInputStream
 import javax.inject.Inject
-
-
 
 
 internal class CacheServiceImpl(
@@ -58,9 +58,11 @@ internal class CacheServiceImpl(
         cacheEntryReader: BuildCacheEntryReader,
     ): Boolean = get(cacheKey.hashCode)
         ?.inputStream()
-        ?.let {
+        ?.let { stream ->
             logger.log("load", "Loading cache entry for key: ${cacheKey.hashCode}")
-            cacheEntryReader.readFrom(it)
+            GZIPInputStream(stream).use { gis ->
+                cacheEntryReader.readFrom(gis)
+            }
             logger.log("load", "Successfully loaded cache entry for key: ${cacheKey.hashCode}")
             true
         }
@@ -83,6 +85,9 @@ internal class CacheServiceImpl(
 
     override fun close() {
         logger.log("close", "Closing cache service")
+        val cleanup by di.instance<UpdateManifestForCleanup>()
+
+        cleanup()
     }
 
 
@@ -100,25 +105,20 @@ internal class CacheServiceImpl(
     }
 
     fun put(key: CacheKeyType, value: ByteArray) {
-        val result = providers.fold(key) { acc, provider ->
-            logger.log(provider::class.simpleName ?: "Unknown", "putting key=$acc content to provider")
-            provider.put(acc, value)
-        }
-        val filepath = result as? CacheKeyType.FilePath
+        val remoteCache by di.instance<CacheProvider>(tag = REMOTE_CACHE_PROVIDER_TAG)
+        val localCache by di.instance<CacheProvider>(tag = LOCAL_CACHE_PROVIDER_TAG)
+        val memoryCache by di.instance<CacheProvider>(tag = MEMORY_CACHE_PROVIDER_TAG)
 
-        val hash = filepath?.ipfsHash ?: return
+        memoryCache.put(key, value)
 
-        logger.log("put", "providing $key to network with hash=$hash")
-        val provideHashToNetworkUseCase = di.direct.instance<ProvideHashToNetworkUseCase>()
+        val file = localCache.put(key, value)
 
-        provideHashToNetworkUseCase(hash)
+        val fileWithHash = remoteCache.put(file, value)
+
+        localCache.put(fileWithHash, value)
+
     }
 
-    fun remove(key: String) {
-        for (provider in providers) {
-            provider.remove(key)
-        }
-    }
 
 
 }

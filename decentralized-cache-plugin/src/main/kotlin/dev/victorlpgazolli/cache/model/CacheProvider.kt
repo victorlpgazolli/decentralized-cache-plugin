@@ -12,6 +12,7 @@ sealed class CacheKeyType(
     ): CacheKeyType(value = name)
     data class FilePath(
         val fullpath: String,
+        val md5sum: String,
         val ipfsHash: String?,
     ): CacheKeyType(value = fullpath)
 }

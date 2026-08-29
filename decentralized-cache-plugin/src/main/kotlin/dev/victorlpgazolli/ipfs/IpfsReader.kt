@@ -1,6 +1,7 @@
 package dev.victorlpgazolli.ipfs
 
 import dev.victorlpgazolli.utils.Logger
+import java.io.InputStream
 
 sealed class IpfsReaderKey(
     val path: String
@@ -29,7 +30,7 @@ sealed class IpfsReaderKey(
 }
 
 internal interface IpfsReader {
-    fun read(key: IpfsReaderKey): String?
+    fun read(key: IpfsReaderKey): InputStream
 }
 
 internal fun IpfsReader(
@@ -46,12 +47,12 @@ class IpfsReaderImpl(
     private val ipfs: IpfsConnectedSession,
     private val logger: Logger,
 ): IpfsReader {
-    override fun read(key: IpfsReaderKey): String {
+    override fun read(key: IpfsReaderKey): InputStream {
         val hash = when(key) {
             is IpfsReaderKey.IpnsPath -> ipfs.nameResolve(key.pathWithoutPrefix)
             is IpfsReaderKey.IpfsPath -> key.pathWithoutPrefix
         }
-        return ipfs.cat(hash)
+        return ipfs.catStream(hash)
     }
 }
 

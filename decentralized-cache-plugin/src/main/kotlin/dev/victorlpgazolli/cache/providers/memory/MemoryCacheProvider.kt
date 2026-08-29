@@ -2,11 +2,8 @@ package dev.victorlpgazolli.cache.providers.memory
 
 import dev.victorlpgazolli.cache.model.CacheKeyType
 import dev.victorlpgazolli.cache.model.CacheProvider
-import dev.victorlpgazolli.utils.Logger
 
-class MemoryCacheProvider(
-    private val logger: Logger,
-): CacheProvider {
+internal class MemoryCacheProvider : CacheProvider {
     private val cache = mutableMapOf<String, ByteArray>()
 
     override fun get(key: String): ByteArray? {

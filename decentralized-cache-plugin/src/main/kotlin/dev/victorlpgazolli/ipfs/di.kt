@@ -41,4 +41,12 @@ val ipfsDiModule: DI.Module = DI.Module("ipfs") {
             logger = instance(),
         )
     }
+    bindProvider<UpdateManifestForCleanup> {
+        UpdateManifestForCleanupImpl(
+            ipfsConnectedSession = instance(),
+            manifestCacheHelper = instance(),
+            provideHashToNetworkUseCase = instance(),
+            logger = instance(),
+        )
+    }
 }

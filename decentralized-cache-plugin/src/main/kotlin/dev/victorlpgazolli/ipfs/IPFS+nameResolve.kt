@@ -1,9 +1,10 @@
 package dev.victorlpgazolli.ipfs
 
+import kotlinx.serialization.json.Json
 import java.net.HttpURLConnection
 import java.net.URL
 
-fun IpfsConnectedSession.nameResolve(hash: String): String {
+inline fun <reified T>IpfsConnectedSession.nameResolve(hash: String): T {
 
     val fullUrl = URL("$baseUrl/api/v0/name/resolve?arg=$hash&recursive=true")
     val resolveConnection = fullUrl.openConnection() as HttpURLConnection
@@ -12,5 +13,7 @@ fun IpfsConnectedSession.nameResolve(hash: String): String {
 
     resolveConnection.readTimeout = 10000
 
-    return resolveConnection.inputStream.bufferedReader().use { it.readText() }
+    return Json.decodeFromString<T>(
+        resolveConnection.inputStream.bufferedReader().use { it.readText() }
+    )
 }

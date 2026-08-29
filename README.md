@@ -13,12 +13,13 @@ There are plugins that you could use to store your build cache in a cloud storag
 - [craigatk/object-store-cache-plugin](https://github.com/craigatk/object-store-cache-plugin) (reference to the project that i forked from) 
 - ... probably many more ...
 
-The way i see it, running your own build cache server is not ideal, you would need to setup the server, configure and maintain it.
+The way i see it, sometimes running your own build cache server can be challenging, you would need to setup the server, configure and maintain it.
 I think a cloud storage solution is enough, it will probably be cheaper and easier to maintain, but you would still need to configure it, and worry about data transfer, but overall it sounds good.
 
 This project tries to approach the problem from a different angle, instead of relying on a centralized server or cloud storage,
 the main goal here is to share cache between developers in a decentralized way, using a established peer-to-peer network.
 I couldn't find any other plugin that does this, so i decided to create one.
+
 
 ## How it works:
 
@@ -28,6 +29,9 @@ When you download the build cache, you also become a seed for it, so you can sha
 If no one can provide the cache you need, your project compiles as it normally would, and after that the plugin announces to the network that you have this specific build cache available in case someone else needs it.
 
 The decentralized network i chose is called [IPFS](https://ipfs.io/), i highly recommend reading the documentation to understand how it works. For this project specifically, it satisfies the requirements and it seems to have support from the community, which is enough for me.
+
+>[!IMPORTANT]
+> DO NOT use this plugin in production, it is just a proof of concept... use it at your own risk.
 
 ## Usage
 

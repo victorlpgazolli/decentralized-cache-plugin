@@ -14,17 +14,18 @@ internal interface HttpClientProvider {
 
 internal fun HttpClientProvider(): HttpClientProvider {
     return object : HttpClientProvider {
-        override fun getClient(): HttpClient = HttpClient(CIO) {
-            install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                    prettyPrint = true
-                })
-            }
+        override fun getClient(): HttpClient =
+            HttpClient(CIO) {
+                install(ContentNegotiation) {
+                    json(
+                        Json {
+                            ignoreUnknownKeys = true
+                            prettyPrint = true
+                        }
+                    )
+                }
 
-            install(Logging) {
-                level = LogLevel.BODY
+                install(Logging) { level = LogLevel.BODY }
             }
-        }
     }
 }

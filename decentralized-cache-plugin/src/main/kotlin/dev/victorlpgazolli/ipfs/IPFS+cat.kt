@@ -2,8 +2,6 @@ package dev.victorlpgazolli.ipfs
 
 import java.net.URL
 
-
-
 fun IpfsConnectedSession.catText(hash: String): String {
     return catStream(hash).bufferedReader().use { it.readText() }
 }

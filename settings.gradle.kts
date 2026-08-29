@@ -6,4 +6,5 @@ pluginManagement {
         mavenCentral()
     }
 }
+
 include(rootProject.name)

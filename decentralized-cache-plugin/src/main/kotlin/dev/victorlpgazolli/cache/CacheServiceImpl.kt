@@ -5,9 +5,10 @@ import dev.victorlpgazolli.DecentralizedConfigurationHolder
 import dev.victorlpgazolli.appDiModule
 import dev.victorlpgazolli.cache.model.CacheKeyType
 import dev.victorlpgazolli.cache.model.CacheProvider
-import dev.victorlpgazolli.ipfs.ProvideHashToNetworkUseCase
 import dev.victorlpgazolli.ipfs.UpdateManifestForCleanup
 import dev.victorlpgazolli.utils.Logger
+import java.util.zip.GZIPInputStream
+import javax.inject.Inject
 import org.gradle.caching.BuildCacheEntryReader
 import org.gradle.caching.BuildCacheEntryWriter
 import org.gradle.caching.BuildCacheKey
@@ -17,16 +18,9 @@ import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.direct
 import org.kodein.di.instance
-import java.util.zip.GZIPInputStream
-import javax.inject.Inject
 
-
-internal class CacheServiceImpl(
-    override var di: DI
-) : DIAware,
-    BuildCacheServiceFactory<DecentralizedConfiguration>,
-    BuildCacheService {
-
+internal class CacheServiceImpl(override var di: DI) :
+    DIAware, BuildCacheServiceFactory<DecentralizedConfiguration>, BuildCacheService {
 
     private val logger by instance<Logger>()
 
@@ -39,46 +33,34 @@ internal class CacheServiceImpl(
             )
         }
 
-    @Inject
-    constructor() : this(di = appDiModule)
+    @Inject constructor() : this(di = appDiModule)
 
     override fun createBuildCacheService(
         configuration: DecentralizedConfiguration,
-        describer: BuildCacheServiceFactory.Describer
+        describer: BuildCacheServiceFactory.Describer,
     ): BuildCacheService {
-        val logger by di.instance<Logger>()
-        logger.log("createBuildCacheService", "Creating build cache service with configuration: $configuration")
+        logger.log(
+            "createBuildCacheService",
+            "Creating build cache service with configuration: $configuration",
+        )
         val configHolder by di.instance<DecentralizedConfigurationHolder>()
         configHolder.configuration = configuration
         return this
     }
 
-    override fun load(
-        cacheKey: BuildCacheKey,
-        cacheEntryReader: BuildCacheEntryReader,
-    ): Boolean = get(cacheKey.hashCode)
-        ?.inputStream()
-        ?.let { stream ->
+    override fun load(cacheKey: BuildCacheKey, cacheEntryReader: BuildCacheEntryReader): Boolean =
+        get(cacheKey.hashCode)?.inputStream()?.let { stream ->
             logger.log("load", "Loading cache entry for key: ${cacheKey.hashCode}")
-            GZIPInputStream(stream).use { gis ->
-                cacheEntryReader.readFrom(gis)
-            }
+            GZIPInputStream(stream).use { gis -> cacheEntryReader.readFrom(gis) }
             logger.log("load", "Successfully loaded cache entry for key: ${cacheKey.hashCode}")
             true
-        }
-        ?: false
+        } ?: false
 
-
-    override fun store(
-        cacheKey: BuildCacheKey,
-        cacheEntryWriter: BuildCacheEntryWriter,
-    ) {
+    override fun store(cacheKey: BuildCacheKey, cacheEntryWriter: BuildCacheEntryWriter) {
         logger.log("store", "Storing cache entry for key: ${cacheKey.hashCode}")
         put(
-            key = CacheKeyType.Object(
-                name = cacheKey.hashCode,
-            ),
-            value = cacheEntryWriter.inputStream.readAllBytes()
+            key = CacheKeyType.Object(name = cacheKey.hashCode),
+            value = cacheEntryWriter.inputStream.readAllBytes(),
         )
         logger.log("store", "Successfully stored cache entry for key: ${cacheKey.hashCode}")
     }
@@ -90,11 +72,16 @@ internal class CacheServiceImpl(
         cleanup()
     }
 
-
     fun get(key: String): ByteArray? {
-        logger.log("get", "Getting value for key: $key with providers=${providers.map { it::class.simpleName }}")
+        logger.log(
+            "get",
+            "Getting value for key: $key with providers=${providers.map { it::class.simpleName }}",
+        )
         for (provider in providers) {
-            logger.log(provider::class.simpleName ?: "Unknown", "getting $key content from provider")
+            logger.log(
+                provider::class.simpleName ?: "Unknown",
+                "getting $key content from provider",
+            )
             val value = provider.get(key)
             if (value != null) {
                 return value
@@ -116,9 +103,5 @@ internal class CacheServiceImpl(
         val fileWithHash = remoteCache.put(file, value)
 
         localCache.put(fileWithHash, value)
-
     }
-
-
-
 }

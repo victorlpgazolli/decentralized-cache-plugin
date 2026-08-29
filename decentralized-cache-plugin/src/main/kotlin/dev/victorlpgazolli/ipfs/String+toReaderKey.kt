@@ -6,10 +6,11 @@ fun String.toReaderKey(): IpfsReaderKey {
         "ipfs" -> IpfsReaderKey.IpfsPath(normalizedStartOfKey.removePrefix("ipfs/"))
         "ipns" -> IpfsReaderKey.IpnsPath(normalizedStartOfKey.removePrefix("ipns/"))
         "bafy" -> IpfsReaderKey.IpfsPath(normalizedStartOfKey)
-        else -> when(normalizedStartOfKey.take(2)) {
-            "Qm" -> IpfsReaderKey.IpfsPath(normalizedStartOfKey)
-            "k5" -> IpfsReaderKey.IpnsPath(normalizedStartOfKey)
-            else -> throw IpfsReaderUnknownKeyException(normalizedStartOfKey)
-        }
+        else ->
+            when (normalizedStartOfKey.take(2)) {
+                "Qm" -> IpfsReaderKey.IpfsPath(normalizedStartOfKey)
+                "k5" -> IpfsReaderKey.IpnsPath(normalizedStartOfKey)
+                else -> throw IpfsReaderUnknownKeyException(normalizedStartOfKey)
+            }
     }
 }

@@ -11,9 +11,10 @@ internal class RemoteCacheProvider(
     private val ipfsConnectedSession: IpfsConnectedSession,
     private val logger: Logger,
     private val manifestCacheHelper: ManifestCacheHelper,
-) : CacheProvider by IpfsCacheProvider(
-    ipfsReader = ipfsReader,
-    ipfsConnectedSession = ipfsConnectedSession,
-    logger = logger,
-    manifestCacheHelper = manifestCacheHelper,
-)
+) :
+    CacheProvider by IpfsCacheProvider(
+        ipfsReader = ipfsReader,
+        ipfsConnectedSession = ipfsConnectedSession,
+        logger = logger,
+        manifestCacheHelper = manifestCacheHelper,
+    )

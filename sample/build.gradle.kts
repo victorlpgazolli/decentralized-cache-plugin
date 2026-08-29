@@ -3,6 +3,4 @@ plugins {
     alias(libs.plugins.serialization)
 }
 
-repositories {
-    mavenCentral()
-}
+repositories { mavenCentral() }

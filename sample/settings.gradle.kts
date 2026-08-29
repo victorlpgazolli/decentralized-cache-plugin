@@ -11,9 +11,7 @@ pluginManagement {
     includeBuild("../")
 }
 
-plugins {
-    id("dev.victorlpgazolli.decentralized-cache-plugin")
-}
+plugins { id("dev.victorlpgazolli.decentralized-cache-plugin") }
 
 buildCache {
     local { isEnabled = false }
@@ -22,14 +20,9 @@ buildCache {
         isEnabled = true
         isPush = true
         peerIpnsList = emptyList()
-        verbose = true
     }
 }
 
 dependencyResolutionManagement {
-    versionCatalogs {
-        create("libs") {
-            from(files("../gradle/libs.versions.toml"))
-        }
-    }
+    versionCatalogs { create("libs") { from(files("../gradle/libs.versions.toml")) } }
 }

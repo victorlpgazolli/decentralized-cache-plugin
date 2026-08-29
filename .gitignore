@@ -16,7 +16,7 @@ target
 
 *.log
 .kotlin
-local*
+local.properties
 
 minio
 data/
